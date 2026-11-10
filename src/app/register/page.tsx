@@ -43,13 +43,10 @@ export default function RegisterPage() {
 
     setBusy(true);
 
-    const { data: existing } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
-    if (existing) {
-      setErrors(["That username is already taken."]);
+    // Anonymous users can't read profiles (RLS), so ask the database instead.
+    const { data: available } = await supabase.rpc("username_available", { p_username: username });
+    if (available === false) {
+      setErrors(["That username is already taken. If it is yours, try signing in instead."]);
       setBusy(false);
       return;
     }
@@ -62,7 +59,10 @@ export default function RegisterPage() {
 
     if (signUpError) {
       const message = signUpError.message.toLowerCase();
-      if (message.includes("rate limit")) {
+      if (message.includes("database error saving new user")) {
+        // Trigger-level failure; in practice always a duplicate username.
+        setErrors(["That username is already taken. If it is yours, try signing in instead."]);
+      } else if (message.includes("rate limit")) {
         setErrors([
           "The signup limit was hit because email confirmation is still enabled. Ask the workspace admin to turn it off in Supabase (Authentication -> Providers -> Email -> Confirm email OFF), then try again.",
         ]);

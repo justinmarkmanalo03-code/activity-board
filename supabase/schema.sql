@@ -222,6 +222,23 @@ $$;
 grant execute on function public.create_board(text) to authenticated;
 grant execute on function public.touch_last_seen() to authenticated;
 grant execute on function public.admin_storage_stats() to authenticated;
+grant execute on function public.username_available(text) to anon, authenticated;
+
+-- Username availability pre-check for signup (anon can call it).
+create or replace function public.username_available(p_username text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select not exists (
+        select 1 from public.profiles where lower(username) = lower(p_username)
+    )
+$$;
+
+-- Usernames are unique case-insensitively (matches the original MySQL app).
+create unique index if not exists profiles_username_ci_key
+    on public.profiles (lower(username));
 
 -- ============================================================
 -- Row Level Security
