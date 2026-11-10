@@ -70,7 +70,7 @@ export function CardModal({
     setDueTime(card.due_time ?? "");
     setPriority(card.priority);
     setAssigneeIds(card.card_assignees.map((a) => a.user_id));
-  }, [card]);
+  }, [card.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
