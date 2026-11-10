@@ -48,6 +48,7 @@ export default function BoardPage() {
   const [notFound, setNotFound] = useState(false);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
   const [promptState, setPromptState] = useState<PromptState>(null);
   const refreshTimer = useRef<number | null>(null);
@@ -605,8 +606,8 @@ export default function BoardPage() {
               </button>
             )}
             {isOwner && (
-              <button type="button" className="btn btn-danger-ghost btn-small" onClick={deleteBoard}>
-                Delete
+              <button type="button" className="btn btn-ghost btn-small" onClick={() => setSettingsOpen(true)}>
+                Settings
               </button>
             )}
           </div>
@@ -652,6 +653,55 @@ export default function BoardPage() {
           onClose={() => setShareOpen(false)}
           onError={showToast}
         />
+      )}
+
+      {settingsOpen && isOwner && (
+        <div className="confirm-overlay">
+          <div className="modal-card confirm-card" role="dialog" aria-modal="true">
+            <header className="modal-head">
+              <h2>Board settings</h2>
+              <button type="button" className="icon-btn" aria-label="Cancel" onClick={() => setSettingsOpen(false)}>
+                &#10005;
+              </button>
+            </header>
+            <div className="modal-actions" style={{ display: "flex", flexDirection: "column", gap: 8, padding: "16px 20px" }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                onClick={() => {
+                  setSettingsOpen(false);
+                  setPromptState({
+                    title: "Rename board",
+                    label: "Board name",
+                    value: board?.title ?? "",
+                    color: null,
+                    maxLength: 100,
+                    onOk: async (value) => {
+                      setPromptState(null);
+                      const { error } = await supabase.from("boards").update({ title: value }).eq("id", board!.id);
+                      if (error) showToast("Could not rename the board.");
+                      else showToast("Board renamed.");
+                      loadBoard();
+                      loadNavBoards();
+                    },
+                  });
+                }}
+              >
+                Rename board
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger-ghost btn-small"
+                onClick={() => {
+                  setSettingsOpen(false);
+                  deleteBoard();
+                }}
+              >
+                Delete board
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmState && (
