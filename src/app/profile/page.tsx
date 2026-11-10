@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
 import { Avatar, PresenceDot } from "@/components/Avatar";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
@@ -369,6 +370,7 @@ function ProfileContent({
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { session, profile, loading, refreshProfile } = useSession();
   const [boards, setBoards] = useState<BoardSummary[] | null>(null);
   const [assignedCount, setAssignedCount] = useState(0);
@@ -376,6 +378,10 @@ export default function ProfilePage() {
   useEffect(() => {
     document.body.className = "";
   }, []);
+
+  useEffect(() => {
+    if (!loading && !session) router.replace("/login");
+  }, [loading, session, router]);
 
   usePresenceHeartbeat(Boolean(session));
 

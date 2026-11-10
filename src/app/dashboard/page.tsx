@@ -97,12 +97,17 @@ function DashboardContent({ boards }: { boards: BoardSummary[] }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { session, profile, loading } = useSession();
   const [boards, setBoards] = useState<BoardSummary[] | null>(null);
 
   useEffect(() => {
     document.body.className = "";
   }, []);
+
+  useEffect(() => {
+    if (!loading && !session) router.replace("/login");
+  }, [loading, session, router]);
 
   usePresenceHeartbeat(Boolean(session));
 

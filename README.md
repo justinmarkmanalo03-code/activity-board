@@ -20,7 +20,7 @@ Features: boards, lists, cards with drag-and-drop, assignees, priorities, due da
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com) (free tier is fine).
 2. **Run the schema**: open Dashboard -> SQL Editor, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates all tables, RLS policies, storage buckets, triggers, and realtime wiring. It is idempotent (safe to re-run).
-3. **Configure auth** (recommended): Dashboard -> Authentication -> Providers -> Email -> turn **off** "Confirm email" so new accounts sign in instantly. (Keep it on if you prefer email verification - the app shows a "check your email" notice.)
+3. **Turn off email confirmation (required)**: Dashboard -> Authentication -> Providers (Sign In / Up) -> Email -> uncheck **"Confirm email"**. The app creates username-only accounts with internal addresses, so confirmation emails can never be opened - and with confirmation on, Supabase's email limit (~2/hour) blocks signups with "email rate limit exceeded".
 4. **Env vars**: copy `.env.example` to `.env.local` and fill in the values from Dashboard -> Settings -> API:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co

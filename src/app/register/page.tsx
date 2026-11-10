@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  const [pending, setPending] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -53,16 +54,32 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: emailForUsername(username),
       password,
       options: { data: { username } },
     });
 
     if (signUpError) {
-      setErrors([signUpError.message.includes("already")
-        ? "That username is already taken."
-        : signUpError.message]);
+      const message = signUpError.message.toLowerCase();
+      if (message.includes("rate limit")) {
+        setErrors([
+          "The signup limit was hit because email confirmation is still enabled. Ask the workspace admin to turn it off in Supabase (Authentication -> Providers -> Email -> Confirm email OFF), then try again.",
+        ]);
+      } else if (message.includes("already")) {
+        setErrors(["That username is already taken."]);
+      } else {
+        setErrors([signUpError.message]);
+      }
+      setBusy(false);
+      return;
+    }
+
+    if (!signUpData.session) {
+      // Email confirmation is enabled on the Supabase project - accounts made of
+      // usernames only can never confirm. Surface it instead of dead-ending.
+      setErrors([]);
+      setPending(true);
       setBusy(false);
       return;
     }
@@ -89,6 +106,15 @@ export default function RegisterPage() {
                 <li key={error}>{error}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {pending && (
+          <div className="alert">
+            Signup received, but <strong>email confirmation is enabled</strong> on the Supabase project.
+            This app uses usernames only, so confirmation can never complete. Ask the workspace admin to
+            turn it off (Supabase → Authentication → Providers → Email → uncheck "Confirm email"), then
+            sign up again.
           </div>
         )}
 
