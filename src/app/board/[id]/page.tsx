@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
+import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
 import { Avatar, PresenceDot } from "@/components/Avatar";
 import { BoardView } from "@/components/board/BoardView";
 import { CardModal } from "@/components/board/CardModal";
@@ -36,7 +36,6 @@ export default function BoardPage() {
   const params = useParams<{ id: string }>();
   const boardId = params.id;
   const router = useRouter();
-  const toggle = useSidebarToggle();
 
   const { session, profile, loading } = useSession();
   const { message: toastMessage, show: showToast } = useToast();
@@ -562,15 +561,7 @@ export default function BoardPage() {
 
       <Sidebar active="board" user={profile} boards={navBoards} lists={lists} showLists boardId={boardId}>
         <header className="board-topbar">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-            onClick={toggle}
-          >
-            &#9776;
-          </button>
+          <SidebarToggleButton />
           <h1 id="boardTitle">{board.title}</h1>
           <div className="board-actions">
             <div className="active-member-avatars" aria-label="Online board members">

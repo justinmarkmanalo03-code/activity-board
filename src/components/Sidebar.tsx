@@ -15,6 +15,21 @@ export function useSidebarToggle() {
   return useContext(ShellContext);
 }
 
+export function SidebarToggleButton() {
+  const toggle = useSidebarToggle();
+  return (
+    <button
+      type="button"
+      className="sidebar-toggle"
+      title="Toggle sidebar"
+      aria-label="Toggle sidebar"
+      onClick={toggle}
+    >
+      &#9776;
+    </button>
+  );
+}
+
 export function Sidebar({
   active,
   user,
@@ -42,12 +57,25 @@ export function Sidebar({
     } catch {
       // storage unavailable
     }
+    try {
+      setOpen(sessionStorage.getItem(SIDEBAR_KEY) === "1");
+    } catch {
+      // storage unavailable
+    }
   }, []);
 
   const toggle = () => {
     const narrow = window.matchMedia("(max-width: 900px)").matches;
     if (narrow) {
-      setOpen((prev) => !prev);
+      setOpen((prev) => {
+        const next = !prev;
+        try {
+          sessionStorage.setItem(SIDEBAR_KEY, next ? "1" : "0");
+        } catch {
+          // ignore
+        }
+        return next;
+      });
       return;
     }
     setCollapsed((prev) => {

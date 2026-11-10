@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
+import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
 import { ConfirmModal } from "@/components/Modals";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
@@ -59,8 +59,6 @@ function AdminContent({
   resetResult: { username: string; tempPassword: string } | null;
   onResetPassword: (member: Profile) => void;
 }) {
-  const toggle = useSidebarToggle();
-
   const storageBytes = (stats?.buckets ?? []).reduce((sum, bucket) => sum + Number(bucket.bytes), 0);
   const dbBytes = Number(stats?.db_total_bytes ?? 0);
   const usedPercent = dbBytes > 0 ? Math.min(100, (dbBytes / DB_QUOTA_BYTES) * 100) : 0;
@@ -75,15 +73,7 @@ function AdminContent({
     <>
       <header className="topbar">
         <div className="topbar-left">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-            onClick={toggle}
-          >
-            &#9776;
-          </button>
+          <SidebarToggleButton />
           <div className="brand">Activity Board</div>
         </div>
         <div className="topbar-right">

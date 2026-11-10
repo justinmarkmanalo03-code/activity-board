@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
+import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
 import { Avatar, PresenceDot } from "@/components/Avatar";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
@@ -35,7 +35,6 @@ function ProfileContent({
   assignedCount: number;
   onAvatarSaved: () => void;
 }) {
-  const toggle = useSidebarToggle();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
@@ -180,15 +179,7 @@ function ProfileContent({
     <>
       <header className="topbar">
         <div className="topbar-left">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-            onClick={toggle}
-          >
-            &#9776;
-          </button>
+          <SidebarToggleButton />
           <div className="brand">Activity Board</div>
         </div>
         <div className="topbar-right">

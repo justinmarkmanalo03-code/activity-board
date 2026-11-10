@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
+import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import type { BoardSummary } from "@/lib/types";
@@ -16,7 +16,6 @@ interface BoardRow {
 }
 
 function DashboardContent({ boards }: { boards: BoardSummary[] }) {
-  const toggle = useSidebarToggle();
   const router = useRouter();
   const [error, setError] = useState("");
 
@@ -38,15 +37,7 @@ function DashboardContent({ boards }: { boards: BoardSummary[] }) {
     <>
       <header className="topbar">
         <div className="topbar-left">
-          <button
-            type="button"
-            className="sidebar-toggle"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
-            onClick={toggle}
-          >
-            &#9776;
-          </button>
+          <SidebarToggleButton />
           <div className="brand">Activity Board</div>
         </div>
       </header>
