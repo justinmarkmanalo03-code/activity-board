@@ -618,14 +618,19 @@ textarea {
     position: relative;
     margin-bottom: 14px;
     border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .profile-avatar-lg .presence-dot {
     width: 15px;
     height: 15px;
     border: 3px solid #fff;
-    right: 3px;
-    bottom: 3px;
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
 }
 
 .profile-summary-name {
