@@ -233,25 +233,6 @@ export default function BoardPage() {
 
   // ---------- Board mutations ----------
 
-  async function renameBoard() {
-    if (!board) return;
-    setPromptState({
-      title: "Rename board",
-      label: "Board name",
-      value: board.title,
-      color: null,
-      maxLength: 100,
-      onOk: async (value) => {
-        setPromptState(null);
-        const { error } = await supabase.from("boards").update({ title: value }).eq("id", board.id);
-        if (error) showToast("Could not rename the board.");
-        else showToast("Board renamed.");
-        loadBoard();
-        loadNavBoards();
-      },
-    });
-  }
-
   function deleteBoard() {
     if (!board) return;
     setConfirmState({
@@ -598,11 +579,6 @@ export default function BoardPage() {
                 onClick={() => setShareOpen(true)}
               >
                 Share
-              </button>
-            )}
-            {canManage && (
-              <button type="button" className="btn btn-ghost btn-small" onClick={renameBoard}>
-                Rename
               </button>
             )}
             {isOwner && (
