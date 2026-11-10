@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar, useSidebarToggle } from "@/components/Sidebar";
+import { ConfirmModal } from "@/components/Modals";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
-import { formatBytes } from "@/lib/format";
-import type { BoardSummary } from "@/lib/types";
+import { displayDate, formatBytes } from "@/lib/format";
+import type { BoardSummary, Profile } from "@/lib/types";
 
 interface BoardRow {
   id: string;
@@ -41,7 +42,23 @@ const REFRESH_SECONDS = 30;
 const DB_QUOTA_BYTES = 500 * 1024 * 1024;
 const STORAGE_QUOTA_BYTES = 1024 * 1024 * 1024;
 
-function AdminContent({ stats, updatedAt, status }: { stats: Stats | null; updatedAt: string; status: string }) {
+function AdminContent({
+  stats,
+  updatedAt,
+  status,
+  members,
+  resetTarget,
+  resetResult,
+  onResetPassword,
+}: {
+  stats: Stats | null;
+  updatedAt: string;
+  status: string;
+  members: Profile[];
+  resetTarget: Profile | null;
+  resetResult: { username: string; tempPassword: string } | null;
+  onResetPassword: (member: Profile) => void;
+}) {
   const toggle = useSidebarToggle();
 
   const storageBytes = (stats?.buckets ?? []).reduce((sum, bucket) => sum + Number(bucket.bytes), 0);
@@ -237,6 +254,50 @@ function AdminContent({ stats, updatedAt, status }: { stats: Stats | null; updat
 
         <section className="panel">
           <div className="panel-head">
+            <h2>Members</h2>
+            <span className="muted small">
+              {members.length} account{members.length === 1 ? "" : "s"} · reset passwords from here
+            </span>
+          </div>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th className="cell-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr key={member.id}>
+                  <td>@{member.username}</td>
+                  <td>{member.is_admin ? "Administrator" : "Member"}</td>
+                  <td>{displayDate(member.created_at)}</td>
+                  <td className="cell-right">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-small"
+                      onClick={() => onResetPassword(member)}
+                    >
+                      Reset password
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {members.length === 0 && (
+                <tr>
+                  <td className="empty-cell" colSpan={4}>
+                    Loading...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
             <h2>Notes</h2>
           </div>
           <p className="muted small">
@@ -257,6 +318,9 @@ export default function AdminPage() {
   const [updatedAt, setUpdatedAt] = useState("loading...");
   const [status, setStatus] = useState("loading");
   const [boards, setBoards] = useState<BoardSummary[]>([]);
+  const [members, setMembers] = useState<Profile[]>([]);
+  const [resetTarget, setResetTarget] = useState<Profile | null>(null);
+  const [resetResult, setResetResult] = useState<{ username: string; tempPassword: string } | null>(null);
 
   useEffect(() => {
     document.body.className = "";
@@ -309,6 +373,37 @@ export default function AdminPage() {
   }, [session]);
 
   useEffect(() => {
+    if (!session?.user) return;
+    supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .then(({ data }) => setMembers((data as Profile[]) ?? []));
+  }, [session]);
+
+  const resetPassword = useCallback(
+    async (member: Profile) => {
+      if (!session?.access_token) return;
+      const response = await fetch("/api/admin/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: member.id }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.tempPassword) {
+        setResetResult(null);
+        window.alert(payload?.error ?? "Could not reset the password.");
+        return;
+      }
+      setResetResult({ username: payload.username ?? member.username, tempPassword: payload.tempPassword });
+    },
+    [session]
+  );
+
+  useEffect(() => {
     if (!loading && !session) router.replace("/login");
   }, [loading, session, router]);
 
@@ -322,8 +417,81 @@ export default function AdminPage() {
         <span></span>
       </div>
       <Sidebar active="admin" user={profile} boards={boards}>
-        <AdminContent stats={stats} updatedAt={updatedAt} status={status} />
+        <AdminContent
+          stats={stats}
+          updatedAt={updatedAt}
+          status={status}
+          members={members}
+          resetTarget={resetTarget}
+          resetResult={resetResult}
+          onResetPassword={(member) => setResetTarget(member)}
+        />
       </Sidebar>
+
+      {resetTarget && (
+        <ConfirmModal
+          title="Reset password"
+          confirmLabel="Reset"
+          message={`Generate a temporary password for @${resetTarget.username}? They can sign in with it and change it from their profile page.`}
+          onConfirm={() => {
+            const member = resetTarget;
+            setResetTarget(null);
+            resetPassword(member);
+          }}
+          onCancel={() => setResetTarget(null)}
+        />
+      )}
+
+      {resetResult && (
+        <div className="confirm-overlay">
+          <div className="modal-card confirm-card" role="alertdialog" aria-modal="true">
+            <header className="modal-head">
+              <h2>Temporary password for @{resetResult.username}</h2>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="Close"
+                onClick={() => setResetResult(null)}
+              >
+                &#10005;
+              </button>
+            </header>
+            <p className="muted confirm-message">
+              Share this temporary password with <strong>@{resetResult.username}</strong>. Show it only to
+              them — they should change it after signing in.
+            </p>
+            <div className="stack" style={{ marginTop: "10px" }}>
+              <label>
+                <span>Temporary password</span>
+                <input
+                  type="text"
+                  readOnly
+                  value={resetResult.tempPassword}
+                  onFocus={(e) => e.currentTarget.select()}
+                  style={{ fontFamily: "monospace", fontWeight: 600 }}
+                />
+              </label>
+            </div>
+            <div className="modal-actions">
+              <div className="spacer"></div>
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={() => navigator.clipboard?.writeText(resetResult.tempPassword)}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                onClick={() => setResetResult(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

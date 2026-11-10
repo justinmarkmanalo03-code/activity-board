@@ -83,6 +83,9 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-foot">
+          Forgot your password? <Link href="/forgot-password">Reset it</Link>
+        </p>
+        <p className="auth-foot">
           New here? <Link href="/register">Create a free account</Link>
         </p>
       </main>
