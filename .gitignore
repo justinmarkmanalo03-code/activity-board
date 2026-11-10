@@ -1,0 +1,25 @@
+# Never commit real credentials
+app/config.php
+
+# Uploads (user files, avatars, attachments)
+uploads/
+
+# Environment / local overrides
+*.env
+.env.local
+.env.production
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# PHP
+php_error_log
+*.log
