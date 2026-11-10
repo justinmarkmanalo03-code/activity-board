@@ -1,13 +1,15 @@
 # Never commit real credentials
-app/config.php
-
-# Uploads (user files, avatars, attachments)
-uploads/
-
-# Environment / local overrides
-*.env
+.env
 .env.local
 .env.production
+*.env
+
+# Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+.vercel/
 
 # OS junk
 .DS_Store
@@ -20,6 +22,4 @@ desktop.ini
 *.swp
 *.swo
 
-# PHP
-php_error_log
 *.log
