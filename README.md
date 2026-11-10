@@ -44,7 +44,8 @@ Features: boards, lists, cards with drag-and-drop, assignees, priorities, due da
 
 ## Behavior notes
 
-- **Sign-in is by email + password** (Supabase Auth). Usernames are still unique and used for sharing boards and display everywhere.
+- **Sign-in is by username + password only - no email needed** (matches the original app). Internally each username maps to an internal email address for Supabase Auth; the login form also accepts a real email if you ever migrate accounts.
+- Because accounts have no real email, keep **"Confirm email" disabled** in Supabase (Authentication -> Providers -> Email) and note there is no email-based password reset - same as the original app.
 - **Permission rules live in Postgres RLS**: owner > manager > member, managers can't remove managers, empty lists only deletable, cards deletable by creator or manager, attachment downloads gated per board.
 - **Board changes sync live** across users (Realtime) - two people on the same board see each other's edits within a second.
 - The admin monitor shows Supabase database + storage usage against the free-tier quotas (500 MB DB / 1 GB storage).

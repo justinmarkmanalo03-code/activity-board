@@ -4,17 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { emailForUsername } from "@/lib/auth";
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,30}$/;
 
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
-  const [confirmNotice, setConfirmNotice] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -54,24 +53,16 @@ export default function RegisterPage() {
       return;
     }
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: emailForUsername(username),
       password,
       options: { data: { username } },
     });
 
     if (signUpError) {
       setErrors([signUpError.message.includes("already")
-        ? "That email is already registered."
+        ? "That username is already taken."
         : signUpError.message]);
-      setBusy(false);
-      return;
-    }
-
-    if (!signUpData.session) {
-      // Email confirmation is enabled on the Supabase project.
-      setErrors([]);
-      setConfirmNotice(true);
       setBusy(false);
       return;
     }
@@ -87,86 +78,68 @@ export default function RegisterPage() {
         <span></span>
       </div>
       <main className="auth-card">
-      <div className="brand">Activity Board</div>
-      <h1>Create your account</h1>
-      <p className="lead">Free boards, lists, and cards.</p>
+        <div className="brand">Activity Board</div>
+        <h1>Create your account</h1>
+        <p className="lead">Free boards, lists, and cards. No email needed.</p>
 
-      {errors.length > 0 && (
-        <div className="alert">
-          <ul>
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {errors.length > 0 && (
+          <div className="alert">
+            <ul>
+              {errors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {confirmNotice && (
-        <div className="alert alert-success">
-          Account created! Check your email inbox to confirm your address, then sign in below.
-        </div>
-      )}
+        <form className="stack" onSubmit={onSubmit}>
+          <label>
+            Username
+            <input
+              type="text"
+              name="username"
+              value={username}
+              maxLength={30}
+              pattern="[A-Za-z0-9_]{3,30}"
+              autoComplete="username"
+              required
+              autoFocus
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              name="password"
+              minLength={8}
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <label>
+            Confirm password
+            <input
+              type="password"
+              name="confirm"
+              minLength={8}
+              autoComplete="new-password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          </label>
+          <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? "Creating account…" : "Create account"}
+          </button>
+        </form>
 
-      <form className="stack" onSubmit={onSubmit}>
-        <label>
-          Username
-          <input
-            type="text"
-            name="username"
-            value={username}
-            maxLength={30}
-            pattern="[A-Za-z0-9_]{3,30}"
-            autoComplete="username"
-            required
-            autoFocus
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </label>
-        <label>
-          Email
-          <input
-            type="email"
-            name="email"
-            value={email}
-            maxLength={254}
-            autoComplete="email"
-            required
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            minLength={8}
-            autoComplete="new-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <label>
-          Confirm password
-          <input
-            type="password"
-            name="confirm"
-            minLength={8}
-            autoComplete="new-password"
-            required
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? "Creating account…" : "Create account"}
-        </button>
-      </form>
-
-      <p className="auth-foot">
-        Already have an account? <Link href="/login">Sign in</Link>
-      </p>
-    </main>
+        <p className="auth-foot">
+          Already have an account? <Link href="/login">Sign in</Link>
+        </p>
+      </main>
     </>
   );
 }
