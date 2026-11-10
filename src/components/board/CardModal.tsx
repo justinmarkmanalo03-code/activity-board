@@ -243,6 +243,14 @@ export function CardModal({
                         </label>
                       ))}
                     </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      style={{ marginTop: "10px", width: "100%" }}
+                      onClick={() => setAssignOpen(false)}
+                    >
+                      Apply
+                    </button>
                   </div>
                 )}
               </div>
