@@ -618,10 +618,14 @@ textarea {
     position: relative;
     margin-bottom: 14px;
     border-radius: 50%;
-    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.profile-avatar-lg .avatar {
+    overflow: hidden;
+    border-radius: 50%;
 }
 
 .profile-avatar-lg .presence-dot {
