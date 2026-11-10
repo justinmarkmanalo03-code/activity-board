@@ -11,7 +11,7 @@ import {
   formatBytes,
   formatDue,
 } from "@/lib/format";
-import type { Attachment, BoardMember, Card, Priority } from "@/lib/types";
+import type { Attachment, BoardList, BoardMember, Card, Priority } from "@/lib/types";
 
 export interface SaveFields {
   title: string;
@@ -25,22 +25,26 @@ export interface SaveFields {
 export function CardModal({
   card,
   members,
+  lists,
   myUserId,
   canManage,
   onClose,
   onSave,
   onDelete,
+  onMoveList,
   onUpload,
   onDeleteAttachment,
   onError,
 }: {
   card: Card;
   members: BoardMember[];
+  lists: BoardList[];
   myUserId: string;
   canManage: boolean;
   onClose: () => void;
   onSave: (fields: SaveFields) => Promise<void>;
   onDelete: () => void;
+  onMoveList: (listId: string) => void;
   onUpload: (files: File[]) => Promise<void>;
   onDeleteAttachment: (attachment: Attachment) => void;
   onError: (message: string) => void;
@@ -183,6 +187,29 @@ export function CardModal({
               </div>
               <div className="card-prop-control">
                 <span className="status-pill-badge">{card.priority !== "none" ? card.priority : "To Do"}</span>
+              </div>
+            </div>
+
+            <div className="card-prop-row">
+              <div className="card-prop-label">
+                <span className="prop-icon">&#128736;</span>
+                <span className="prop-text">List</span>
+              </div>
+              <div className="card-prop-control">
+                <select
+                  className="priority-select-pill"
+                  value={card.list_id}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    if (next && next !== card.list_id) onMoveList(next);
+                  }}
+                >
+                  {lists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.title}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

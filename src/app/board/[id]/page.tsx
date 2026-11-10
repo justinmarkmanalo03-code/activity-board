@@ -628,11 +628,13 @@ export default function BoardPage() {
         <CardModal
           card={openCard}
           members={members}
+          lists={lists}
           myUserId={myUserId ?? ""}
           canManage={canManage}
           onClose={() => setOpenCardId(null)}
           onSave={saveCard}
           onDelete={() => deleteCard(openCard.id)}
+          onMoveList={(listId) => moveCard(openCard.id, listId, null)}
           onUpload={uploadAttachments}
           onDeleteAttachment={deleteAttachment}
           onError={showToast}
