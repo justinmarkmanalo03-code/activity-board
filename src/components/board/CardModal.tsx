@@ -297,6 +297,14 @@ export function CardModal({
                     >
                       Clear date
                     </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      style={{ marginTop: "8px", width: "100%" }}
+                      onClick={() => setDatesOpen(false)}
+                    >
+                      Apply
+                    </button>
                   </div>
                 )}
               </div>
