@@ -3008,6 +3008,10 @@ code {
     .sidebar-collapse {
         display: none;
     }
+
+    .app-shell.sidebar-open .sidebar-collapse {
+        display: grid;
+    }
 }
 
 @media (max-width: 760px) {
