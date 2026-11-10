@@ -83,16 +83,17 @@ export function BoardView({
                       >
                         &#9998;
                       </button>
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        data-list-action="delete"
-                        title="Delete list"
-                        hidden={listCards.length > 0}
-                        onClick={() => onDeleteList(list)}
-                      >
-                        &#10005;
-                      </button>
+                      {listCards.length === 0 && (
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          data-list-action="delete"
+                          title="Delete list"
+                          onClick={() => onDeleteList(list)}
+                        >
+                          &#10005;
+                        </button>
+                      )}
                     </div>
                   </header>
 
