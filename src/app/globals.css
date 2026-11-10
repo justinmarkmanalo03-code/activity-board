@@ -2599,6 +2599,14 @@ code {
     border-right: 0;
 }
 
+.app-shell.sidebar-collapsed .topbar {
+    padding: 12px 24px;
+}
+
+.app-shell.sidebar-collapsed .create-board {
+    max-width: 100%;
+}
+
 .app-main {
     display: flex;
     flex-direction: column;
