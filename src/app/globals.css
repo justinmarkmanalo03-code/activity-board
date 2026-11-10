@@ -842,7 +842,7 @@ textarea {
     display: flex;
     gap: 10px;
     margin: 28px 0;
-    max-width: 720px;
+    max-width: 100%;
     background: var(--glass);
     border: 1px solid var(--glass-border);
     padding: 12px;
@@ -2601,10 +2601,6 @@ code {
 
 .app-shell.sidebar-collapsed .topbar {
     padding: 12px 24px;
-}
-
-.app-shell.sidebar-collapsed .create-board {
-    max-width: 100%;
 }
 
 .app-main {
