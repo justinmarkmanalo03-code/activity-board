@@ -63,13 +63,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ---- 2. Shell pages and offline fallback ----
-  // Cache-first for shell pages
+  // ---- 2. Shell pages ----
+  // Network-first: always try the network, fall back to cache when offline.
   if (STATIC_ASSETS.includes(pathname) || pathname.endsWith(".html")) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).catch(() => {
+      fetch(request).then((response) => {
+        if (response.status === 200) {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+        }
+        return response;
+      }).catch(() => {
+        return caches.match(request).then((cached) => {
+          if (cached) return cached;
           if (request.mode === "navigate") {
             return caches.match(OFFLINE_URL);
           }
