@@ -10,6 +10,8 @@ export type ViewMode = "board" | "list";
 export function BoardView({
   lists,
   cardsByList,
+  myUserId,
+  canManage,
   onCardClick,
   onAddCard,
   onRenameList,
@@ -19,6 +21,8 @@ export function BoardView({
 }: {
   lists: BoardList[];
   cardsByList: Record<string, Card[]>;
+  myUserId: string;
+  canManage: boolean;
   onCardClick: (cardId: string) => void;
   onAddCard: (listId: string, title: string) => void;
   onRenameList: (list: BoardList) => void;
@@ -35,6 +39,9 @@ export function BoardView({
     setDragging(null);
     setDropTarget(null);
   }
+
+  const canEditCard = (card: Card) => card.created_by === myUserId || canManage;
+  const canEditList = (list: BoardList) => list.created_by === myUserId || canManage;
 
   return (
     <>
@@ -73,28 +80,30 @@ export function BoardView({
                 >
                   <header className="list-head">
                     <h2 className="list-title">{list.title}</h2>
-                    <div className="list-tools">
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        data-list-action="rename"
-                        title="Rename list"
-                        onClick={() => onRenameList(list)}
-                      >
-                        &#9998;
-                      </button>
-                      {listCards.length === 0 && (
+                    {canEditList(list) && (
+                      <div className="list-tools">
                         <button
                           type="button"
                           className="icon-btn"
-                          data-list-action="delete"
-                          title="Delete list"
-                          onClick={() => onDeleteList(list)}
+                          data-list-action="rename"
+                          title="Rename list"
+                          onClick={() => onRenameList(list)}
                         >
-                          &#10005;
+                          &#9998;
                         </button>
-                      )}
-                    </div>
+                        {listCards.length === 0 && (
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            data-list-action="delete"
+                            title="Delete list"
+                            onClick={() => onDeleteList(list)}
+                          >
+                            &#10005;
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </header>
 
                   <div
@@ -111,20 +120,26 @@ export function BoardView({
                     }}
                   >
                     {listCards.map((card) => {
+                      const editable = canEditCard(card);
                       const hasMeta =
                         card.priority !== "none" ||
                         Boolean(card.due_date) ||
+                        Boolean(card.link_url) ||
                         card.card_assignees.length > 0 ||
                         card.card_attachments.length > 0;
                       return (
                         <article
                           key={card.id}
-                          className="card"
-                          draggable
+                          className={`card${editable ? "" : " card-readonly"}`}
+                          draggable={editable}
                           data-card-id={card.id}
                           data-priority={card.priority}
                           style={{ opacity: dragging?.cardId === card.id ? 0.45 : undefined }}
                           onDragStart={(e) => {
+                            if (!editable) {
+                              e.preventDefault();
+                              return;
+                            }
                             e.dataTransfer.effectAllowed = "move";
                             e.dataTransfer.setData("text/plain", card.id);
                             setDragging({ cardId: card.id, fromListId: card.list_id });
@@ -165,6 +180,18 @@ export function BoardView({
                               ))}
                               {card.due_date && (
                                 <span className="badge due">{formatDue(card.due_date, card.due_time)}</span>
+                              )}
+                              {card.link_url && (
+                                <a
+                                  className="badge link-badge"
+                                  href={card.link_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={card.link_url}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Link
+                                </a>
                               )}
                               {card.card_attachments.length > 0 && (
                                 <span className="badge attachment-count">
@@ -237,12 +264,13 @@ export function BoardView({
                         <th>Assignee</th>
                         <th>Priority</th>
                         <th>Due date</th>
+                        <th>Link</th>
                       </tr>
                     </thead>
                     <tbody>
                       {listCards.length === 0 && (
                         <tr className="task-empty">
-                          <td colSpan={4}>No tasks in this list yet.</td>
+                          <td colSpan={5}>No tasks in this list yet.</td>
                         </tr>
                       )}
                       {listCards.map((card) => (
@@ -282,6 +310,22 @@ export function BoardView({
                           </td>
                           <td className="task-due">
                             {card.due_date ? formatDue(card.due_date, card.due_time) : "\u2014"}
+                          </td>
+                          <td className="task-link-cell">
+                            {card.link_url ? (
+                              <a
+                                className="task-link"
+                                href={card.link_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={card.link_url}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {card.link_url}
+                              </a>
+                            ) : (
+                              "\u2014"
+                            )}
                           </td>
                         </tr>
                       ))}

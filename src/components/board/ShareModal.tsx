@@ -69,8 +69,8 @@ export function ShareModal({
 
         <p className="muted small">
           {isOwner
-            ? "Members can edit lists and cards. Give someone manager power if you trust them to add people, rename the board, and edit cards. Only you can delete the board or change who is a manager."
-            : "You are a manager of this board. You can add members, rename the board, and edit lists and cards."}
+            ? "Members can create their own cards and lists, but only the creator can edit them. Give someone manager power if you trust them to add people, rename the board, and edit anyone's cards and lists. Only you can delete the board or change who is a manager."
+            : "You are a manager of this board. You can add members, rename the board, and edit any list or card."}
         </p>
 
         <ul className="member-list">

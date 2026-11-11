@@ -203,11 +203,7 @@ function ProfileContent({
           <aside className="profile-card-col">
             <section className="profile-summary-card">
               <div className="profile-avatar-lg">
-                <Avatar
-                  username={profile.username}
-                  avatarUrl={preview ?? avatarUrl}
-                  extraClass="profile-avatar-lg"
-                />
+                <Avatar username={profile.username} avatarUrl={preview ?? avatarUrl} />
                 <PresenceDot userId={profile.id} />
               </div>
               <h2 className="profile-summary-name">@{profile.username}</h2>
@@ -414,7 +410,13 @@ export default function ProfilePage() {
 
   if (loading || !boards) return null;
   if (!session || !profile) {
-    return <main className="auth-card"><p className="lead">Redirecting…</p></main>;
+    return (
+      <main className="redirect-screen">
+        <div className="auth-card">
+          <p className="lead">Redirecting…</p>
+        </div>
+      </main>
+    );
   }
 
   return (

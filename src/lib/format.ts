@@ -66,3 +66,19 @@ export function fileExtension(name: string): string {
   const match = /\.([A-Za-z0-9]+)$/.exec(name.trim());
   return match ? match[1].toLowerCase() : "";
 }
+
+// Accepts "example.com/file" or "https://example.com/file" and returns a
+// normalized http(s) URL, or null when the input is not a usable web link.
+export function normalizeLink(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (!url.hostname.includes(".")) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}

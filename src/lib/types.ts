@@ -30,6 +30,7 @@ export interface BoardList {
   title: string;
   color: string;
   position: number;
+  created_by: string | null;
 }
 
 export interface Attachment {
@@ -48,6 +49,7 @@ export interface Card {
   list_id: string;
   title: string;
   description: string;
+  link_url: string | null;
   created_by: string | null;
   due_date: string | null;
   due_time: string | null;

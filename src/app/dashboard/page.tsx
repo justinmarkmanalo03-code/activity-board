@@ -139,7 +139,13 @@ export default function DashboardPage() {
     return null;
   }
   if (!session || !profile) {
-    return <main className="auth-card"><p className="lead">Redirecting…</p></main>;
+    return (
+      <main className="redirect-screen">
+        <div className="auth-card">
+          <p className="lead">Redirecting…</p>
+        </div>
+      </main>
+    );
   }
   if (!boards) {
     return null;

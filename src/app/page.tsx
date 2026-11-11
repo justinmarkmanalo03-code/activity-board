@@ -18,9 +18,11 @@ export default function Home() {
   }, [router]);
 
   return (
-    <main className="auth-card">
-      <div className="brand">Activity Board</div>
-      <p className="lead">Redirecting…</p>
+    <main className="redirect-screen">
+      <div className="auth-card">
+        <div className="brand">Activity Board</div>
+        <p className="lead">Redirecting…</p>
+      </div>
     </main>
   );
 }

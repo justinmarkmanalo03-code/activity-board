@@ -61,6 +61,7 @@ create table if not exists public.lists (
     title      text not null check (char_length(title) between 1 and 100),
     color      text not null default '#ffffff' check (color ~ '^#[0-9A-Fa-f]{6}$'),
     position   integer not null default 0,
+    created_by uuid references public.profiles (id) on delete set null,
     created_at timestamptz not null default now()
 );
 create index if not exists lists_board_pos_idx on public.lists (board_id, position);
@@ -71,6 +72,7 @@ create table if not exists public.cards (
     list_id     uuid not null references public.lists (id) on delete cascade,
     title       text not null check (char_length(title) between 1 and 200),
     description text not null default '' check (char_length(description) <= 5000),
+    link_url    text check (link_url is null or char_length(link_url) <= 2000),
     created_by  uuid references public.profiles (id) on delete set null,
     due_date    date,
     due_time    time,
@@ -137,6 +139,24 @@ as $$
     select l.board_id from public.cards c
     join public.lists l on l.id = c.list_id
     where c.id = p_card
+$$;
+
+-- Only the creator of a card, or a board owner/manager with granted power,
+-- may edit it.
+create or replace function public.can_edit_card(p_card uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1 from public.cards c
+        where c.id = p_card
+          and (
+              c.created_by = auth.uid()
+              or public.board_role(public.card_board(p_card)) in ('owner', 'manager')
+          )
+    )
 $$;
 
 -- Atomic board creation (board + owner membership in one call).
@@ -305,18 +325,27 @@ create policy "lists read member" on public.lists
     for select to authenticated using (public.is_board_member(board_id));
 
 create policy "lists insert member" on public.lists
-    for insert to authenticated with check (public.is_board_member(board_id));
+    for insert to authenticated
+    with check (public.is_board_member(board_id) and created_by = auth.uid());
 
-create policy "lists update member" on public.lists
+-- Only the list creator, or a board owner/manager, may edit a list.
+create policy "lists update creator or manage" on public.lists
     for update to authenticated
-    using (public.is_board_member(board_id))
-    with check (public.is_board_member(board_id));
+    using (
+        public.is_board_member(board_id)
+        and (created_by = auth.uid() or public.board_role(board_id) in ('owner', 'manager'))
+    )
+    with check (
+        public.is_board_member(board_id)
+        and (created_by = auth.uid() or public.board_role(board_id) in ('owner', 'manager'))
+    );
 
 -- Lists can only be deleted while empty (matches PHP behavior).
 create policy "lists delete empty" on public.lists
     for delete to authenticated
     using (
         public.is_board_member(board_id)
+        and (created_by = auth.uid() or public.board_role(board_id) in ('owner', 'manager'))
         and not exists (select 1 from public.cards c where c.list_id = lists.id)
     );
 
@@ -332,10 +361,42 @@ create policy "cards insert member" on public.cards
         and public.is_board_member((select board_id from public.lists l where l.id = list_id))
     );
 
+-- Members may reorder cards (position only), but content edits are guarded by
+-- the cards_guard_edit trigger below.
 create policy "cards update member" on public.cards
     for update to authenticated
     using (public.is_board_member((select board_id from public.lists l where l.id = cards.list_id)))
     with check (public.is_board_member((select board_id from public.lists l where l.id = list_id)));
+
+-- Only the card creator, or a board owner/manager with granted power, may
+-- change a card's content. Position-only reordering stays open to members.
+create or replace function public.guard_card_edit()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if (
+        new.title       is distinct from old.title
+        or new.description is distinct from old.description
+        or new.link_url    is distinct from old.link_url
+        or new.due_date    is distinct from old.due_date
+        or new.due_time    is distinct from old.due_time
+        or new.priority    is distinct from old.priority
+        or new.created_by  is distinct from old.created_by
+        or new.list_id     is distinct from old.list_id
+    ) and not public.can_edit_card(old.id) then
+        raise exception 'Only the card creator or a board manager can edit this card';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists cards_guard_edit on public.cards;
+create trigger cards_guard_edit
+    before update on public.cards
+    for each row execute function public.guard_card_edit();
 
 -- Creator or manager/owner may delete a card.
 create policy "cards delete creator or manage" on public.cards
@@ -352,11 +413,11 @@ create policy "assignees read member" on public.card_assignees
 
 create policy "assignees insert member" on public.card_assignees
     for insert to authenticated
-    with check (public.is_board_member(public.card_board(card_id)));
+    with check (public.can_edit_card(card_id));
 
 create policy "assignees delete member" on public.card_assignees
     for delete to authenticated
-    using (public.is_board_member(public.card_board(card_id)));
+    using (public.can_edit_card(card_id));
 
 -- card_attachments
 create policy "attachments read member" on public.card_attachments
@@ -367,15 +428,12 @@ create policy "attachments insert member" on public.card_attachments
     for insert to authenticated
     with check (
         uploaded_by = auth.uid()
-        and public.is_board_member(public.card_board(card_id))
+        and public.can_edit_card(card_id)
     );
 
 create policy "attachments delete uploader or manage" on public.card_attachments
     for delete to authenticated
-    using (
-        public.is_board_member(public.card_board(card_id))
-        and (uploaded_by = auth.uid() or public.board_role(public.card_board(card_id)) in ('owner', 'manager'))
-    );
+    using (public.can_edit_card(card_id));
 
 -- ============================================================
 -- Storage buckets (avatars = public, attachments = private)

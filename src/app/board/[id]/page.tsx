@@ -79,14 +79,14 @@ export default function BoardPage() {
         supabase.from("boards").select("id, title, owner_id, created_at").eq("id", boardId).maybeSingle(),
         supabase
           .from("lists")
-          .select("id, board_id, title, color, position")
+          .select("id, board_id, title, color, position, created_by")
           .eq("board_id", boardId)
           .order("position")
           .order("id", { ascending: true }),
         supabase
           .from("cards")
           .select(`
-            id, list_id, title, description, created_by, due_date, due_time, priority, position, created_at,
+            id, list_id, title, description, link_url, created_by, due_date, due_time, priority, position, created_at,
             card_assignees ( user_id, profiles ( id, username, avatar_url, last_seen ) ),
             card_attachments ( id, card_id, uploaded_by, storage_path, original_name, mime_type, size_bytes, created_at )
           `)
@@ -303,7 +303,9 @@ export default function BoardPage() {
 
   async function addList(title: string) {
     const position = lists.length > 0 ? Math.max(...lists.map((l) => l.position)) + 1 : 1;
-    const { error } = await supabase.from("lists").insert({ board_id: boardId, title, position });
+    const { error } = await supabase
+      .from("lists")
+      .insert({ board_id: boardId, title, position, created_by: myUserId });
     if (error) showToast("Could not create the list.");
     loadBoard();
   }
@@ -354,6 +356,10 @@ export default function BoardPage() {
 
   async function saveCard(fields: SaveFields) {
     if (!openCard) return;
+    if (openCard.created_by !== myUserId && !canManage) {
+      showToast("Only the card creator or a manager can edit this card.");
+      return;
+    }
     const cardId = openCard.id;
 
     const { error } = await supabase
@@ -361,6 +367,7 @@ export default function BoardPage() {
       .update({
         title: fields.title,
         description: fields.description,
+        link_url: fields.linkUrl,
         due_date: fields.dueDate,
         due_time: fields.dueTime,
         priority: fields.priority,
@@ -402,6 +409,11 @@ export default function BoardPage() {
   }
 
   async function moveCard(cardId: string, toListId: string, beforeCardId: string | null) {
+    const movingCard = cards.find((c) => c.id === cardId);
+    if (movingCard && movingCard.created_by !== myUserId && !canManage) {
+      showToast("Only the card creator or a manager can move this card.");
+      return;
+    }
     draggingRef.current = true;
 
     // Optimistic local reorder.
@@ -509,20 +521,24 @@ export default function BoardPage() {
 
   if (!session || !profile) {
     return (
-      <main className="auth-card">
-        <p className="lead">Redirecting…</p>
+      <main className="redirect-screen">
+        <div className="auth-card">
+          <p className="lead">Redirecting…</p>
+        </div>
       </main>
     );
   }
 
   if (notFound) {
     return (
-      <main className="auth-card">
-        <div className="brand">Activity Board</div>
-        <h1>Board not found.</h1>
-        <p className="lead">
-          It may have been deleted, or you have not been added as a member.
-        </p>
+      <main className="redirect-screen">
+        <div className="auth-card">
+          <div className="brand">Activity Board</div>
+          <h1>Board not found.</h1>
+          <p className="lead">
+            It may have been deleted, or you have not been added as a member.
+          </p>
+        </div>
       </main>
     );
   }
@@ -592,6 +608,8 @@ export default function BoardPage() {
         <BoardView
           lists={lists}
           cardsByList={cardsByList}
+          myUserId={myUserId ?? ""}
+          canManage={canManage}
           onCardClick={(cardId) => setOpenCardId(cardId)}
           onAddCard={addCard}
           onRenameList={renameList}
@@ -606,8 +624,7 @@ export default function BoardPage() {
           card={openCard}
           members={members}
           lists={lists}
-          myUserId={myUserId ?? ""}
-          canManage={canManage}
+          canEdit={openCard.created_by === myUserId || canManage}
           onClose={() => setOpenCardId(null)}
           onSave={saveCard}
           onDelete={() => deleteCard(openCard.id)}

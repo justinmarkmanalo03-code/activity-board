@@ -326,6 +326,20 @@ a:hover {
     to { opacity: 1; transform: translateY(0); }
 }
 
+.redirect-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1;
+}
+
+.redirect-screen .auth-card {
+    margin: 0;
+}
+
 .stack {
     display: flex;
     flex-direction: column;
@@ -624,8 +638,14 @@ textarea {
 }
 
 .profile-avatar-lg .avatar {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
     overflow: hidden;
     border-radius: 50%;
+    font-size: 2.1rem;
 }
 
 .profile-avatar-lg .presence-dot {
@@ -3085,6 +3105,223 @@ code {
 
     .auth-card {
         padding: 28px 22px;
+    }
+}
+
+/* ---------- Card link ---------- */
+
+.card-link-input {
+    width: 100%;
+    min-width: 0;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-size: .78rem;
+    background: rgba(255, 255, 255, .6);
+    border: 1px solid rgba(99, 102, 241, .16);
+}
+
+.card-link-input:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+.card-link-view {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.badge.link-badge {
+    background: rgba(14, 165, 233, .14);
+    color: #0369a1;
+    text-transform: none;
+    letter-spacing: 0;
+    text-decoration: none;
+}
+
+.badge.link-badge:hover {
+    text-decoration: underline;
+}
+
+.task-link {
+    display: inline-block;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.attachment-limit {
+    margin: 4px 0 0;
+}
+
+.card-readonly,
+.card-readonly:active {
+    cursor: default;
+}
+
+.readonly-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.assignees-trigger.is-disabled,
+.dates-trigger.is-disabled {
+    cursor: default;
+    opacity: .85;
+}
+
+.assignees-trigger.is-disabled:hover,
+.dates-trigger.is-disabled:hover {
+    background: rgba(255, 255, 255, .55);
+    border-color: rgba(99, 102, 241, .14);
+}
+
+select:disabled,
+input:disabled,
+textarea:disabled {
+    opacity: .7;
+    cursor: not-allowed;
+}
+
+/* ---------- Overflow safety (small screens) ---------- */
+
+.topbar {
+    flex-wrap: wrap;
+}
+
+.topbar-right {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.user-chip {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.page-head h1,
+.board-topbar h1 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.board-topbar h1 {
+    flex: 1 1 auto;
+}
+
+.profile-summary-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.profile-detail-item {
+    gap: 10px;
+}
+
+.profile-detail-label {
+    flex: 0 0 auto;
+}
+
+.profile-detail-value {
+    min-width: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.profile-panel {
+    overflow-wrap: anywhere;
+}
+
+.avatar-preview-box {
+    flex-wrap: wrap;
+}
+
+.avatar-preview-box > div {
+    min-width: 0;
+    flex: 1 1 160px;
+}
+
+.avatar-preview-box p,
+.avatar-upload-prompt,
+.empty p {
+    overflow-wrap: anywhere;
+}
+
+.card-detail-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.card-creator {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.card-detail-actions {
+    margin-left: auto;
+}
+
+.assign-popover,
+.dates-popover {
+    max-width: calc(100vw - 48px);
+}
+
+.task-group {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.task-table {
+    min-width: 660px;
+}
+
+.task-table th:first-child { width: 34%; }
+.task-table th:nth-child(2) { width: 20%; }
+.task-table th:nth-child(3) { width: 12%; }
+.task-table th:nth-child(4) { width: 14%; }
+.task-table th:nth-child(5) { width: 20%; }
+
+.task-title {
+    overflow-wrap: anywhere;
+}
+
+.modal-card,
+.data-table {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+    .card-prop-label {
+        width: 78px;
+        flex-basis: 78px;
+    }
+
+    .profile-panel {
+        padding: 20px 16px;
+    }
+
+    .profile-summary-card {
+        padding: 24px 16px;
+    }
+
+    .card-detail-modal .modal-card {
+        padding: 12px;
+    }
+
+    .task-table {
+        min-width: 620px;
     }
 }
 

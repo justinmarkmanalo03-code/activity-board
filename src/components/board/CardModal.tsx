@@ -10,12 +10,14 @@ import {
   fileExtension,
   formatBytes,
   formatDue,
+  normalizeLink,
 } from "@/lib/format";
 import type { Attachment, BoardList, BoardMember, Card, Priority } from "@/lib/types";
 
 export interface SaveFields {
   title: string;
   description: string;
+  linkUrl: string | null;
   dueDate: string | null;
   dueTime: string | null;
   priority: Priority;
@@ -26,8 +28,7 @@ export function CardModal({
   card,
   members,
   lists,
-  myUserId,
-  canManage,
+  canEdit,
   onClose,
   onSave,
   onDelete,
@@ -39,8 +40,7 @@ export function CardModal({
   card: Card;
   members: BoardMember[];
   lists: BoardList[];
-  myUserId: string;
-  canManage: boolean;
+  canEdit: boolean;
   onClose: () => void;
   onSave: (fields: SaveFields) => Promise<void>;
   onDelete: () => void;
@@ -51,6 +51,7 @@ export function CardModal({
 }) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
+  const [link, setLink] = useState(card.link_url ?? "");
   const [dueDate, setDueDate] = useState(card.due_date ?? "");
   const [dueTime, setDueTime] = useState(card.due_time ?? "");
   const [priority, setPriority] = useState<Priority>(card.priority);
@@ -66,6 +67,7 @@ export function CardModal({
   useEffect(() => {
     setTitle(card.title);
     setDescription(card.description ?? "");
+    setLink(card.link_url ?? "");
     setDueDate(card.due_date ?? "");
     setDueTime(card.due_time ?? "");
     setPriority(card.priority);
@@ -91,7 +93,7 @@ export function CardModal({
   async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (files.length === 0) return;
+    if (!canEdit || files.length === 0) return;
 
     const invalid: string[] = [];
     for (const file of files) {
@@ -129,12 +131,21 @@ export function CardModal({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (saving) return;
+    if (saving || !canEdit) return;
+
+    const rawLink = link.trim();
+    const linkUrl = normalizeLink(rawLink);
+    if (rawLink !== "" && !linkUrl) {
+      onError("Enter a valid link, for example https://example.com/file.pdf");
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave({
         title: title.trim(),
         description,
+        linkUrl,
         dueDate: dueDate || null,
         dueTime: dueTime || null,
         priority,
@@ -154,7 +165,7 @@ export function CardModal({
             <span>Task</span>
           </div>
           <div className="card-topbar-actions">
-            {(card.created_by === myUserId || canManage) && (
+            {canEdit && (
               <button type="button" className="icon-btn btn-danger-ghost" title="Delete task" onClick={onDelete}>
                 &#128465;
               </button>
@@ -164,6 +175,13 @@ export function CardModal({
             </button>
           </div>
         </div>
+
+        {!canEdit && (
+          <p className="readonly-note">
+            <span aria-hidden="true">&#128274;</span>
+            Read-only — only the creator or a manager can edit this task.
+          </p>
+        )}
 
         <form id="cardForm" className="card-detail-form" onSubmit={submit}>
           <div className="card-title-wrap">
@@ -176,6 +194,7 @@ export function CardModal({
               autoComplete="off"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              disabled={!canEdit}
             />
           </div>
 
@@ -199,6 +218,7 @@ export function CardModal({
                 <select
                   className="priority-select-pill"
                   value={card.list_id}
+                  disabled={!canEdit}
                   onChange={(e) => {
                     const next = e.target.value;
                     if (next && next !== card.list_id) onMoveList(next);
@@ -220,13 +240,15 @@ export function CardModal({
               </div>
               <div className="card-prop-control">
                 <div
-                  className="assignees-trigger"
-                  tabIndex={0}
+                  className={`assignees-trigger${canEdit ? "" : " is-disabled"}`}
+                  tabIndex={canEdit ? 0 : -1}
                   role="button"
-                  title="Assign members"
-                  onClick={() => setAssignOpen((prev) => !prev)}
+                  title={canEdit ? "Assign members" : "Read-only"}
+                  onClick={() => {
+                    if (canEdit) setAssignOpen((prev) => !prev);
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setAssignOpen((prev) => !prev);
+                    if (canEdit && (e.key === "Enter" || e.key === " ")) setAssignOpen((prev) => !prev);
                   }}
                 >
                   <div className="assignees-display">
@@ -245,7 +267,7 @@ export function CardModal({
                     )}
                   </div>
                 </div>
-                {assignOpen && (
+                {canEdit && assignOpen && (
                   <div className="assign-popover">
                     <div className="assign-popover-title">Assign to members</div>
                     <div className="assign-options">
@@ -290,13 +312,15 @@ export function CardModal({
               </div>
               <div className="card-prop-control">
                 <div
-                  className="dates-trigger"
-                  tabIndex={0}
+                  className={`dates-trigger${canEdit ? "" : " is-disabled"}`}
+                  tabIndex={canEdit ? 0 : -1}
                   role="button"
-                  title="Set due date and time"
-                  onClick={() => setDatesOpen((prev) => !prev)}
+                  title={canEdit ? "Set due date and time" : "Read-only"}
+                  onClick={() => {
+                    if (canEdit) setDatesOpen((prev) => !prev);
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") setDatesOpen((prev) => !prev);
+                    if (canEdit && (e.key === "Enter" || e.key === " ")) setDatesOpen((prev) => !prev);
                   }}
                 >
                   <span className="dates-display">
@@ -309,7 +333,7 @@ export function CardModal({
                     )}
                   </span>
                 </div>
-                {datesOpen && (
+                {canEdit && datesOpen && (
                   <div className="dates-popover">
                     <div className="dates-popover-body">
                       <label className="date-pick-label">
@@ -355,6 +379,7 @@ export function CardModal({
                   <select
                     className="priority-select-pill"
                     value={priority}
+                    disabled={!canEdit}
                     onChange={(e) => setPriority(e.target.value as Priority)}
                   >
                     <option value="none">Empty</option>
@@ -368,28 +393,66 @@ export function CardModal({
 
             <div className="card-prop-row">
               <div className="card-prop-label">
+                <span className="prop-icon">&#128279;</span>
+                <span className="prop-text">Link</span>
+              </div>
+              <div className="card-prop-control">
+                {canEdit ? (
+                  <input
+                    type="text"
+                    className="card-link-input"
+                    placeholder="https://example.com/file.pdf"
+                    maxLength={2000}
+                    autoComplete="off"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                  />
+                ) : card.link_url ? (
+                  <a
+                    className="card-link-view"
+                    href={card.link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={card.link_url}
+                  >
+                    {card.link_url}
+                  </a>
+                ) : (
+                  <span className="prop-empty">Empty</span>
+                )}
+              </div>
+            </div>
+
+            <div className="card-prop-row">
+              <div className="card-prop-label">
                 <span className="prop-icon">&#128206;</span>
                 <span className="prop-text">Attachments</span>
               </div>
               <div className="card-prop-control">
-                <label className="attachment-pick-minimal" title="Upload files">
-                  <input ref={fileInputRef} type="file" multiple hidden onChange={onPickFiles} />
-                  <span
-                    className="prop-add-btn"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      fileInputRef.current?.click();
-                    }}
-                  >
-                    {uploading ? "Uploading…" : "+ Add files"}
-                  </span>
-                </label>
+                {canEdit && (
+                  <label className="attachment-pick-minimal" title="Upload files">
+                    <input ref={fileInputRef} type="file" multiple hidden onChange={onPickFiles} />
+                    <span
+                      className="prop-add-btn"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      {uploading ? "Uploading…" : "+ Add files"}
+                    </span>
+                  </label>
+                )}
                 <p className="attachment-status muted small" hidden={!uploading}>
                   Uploading files…
                 </p>
               </div>
             </div>
           </div>
+
+          <p className="attachment-limit muted small">
+            Max {formatBytes(ATTACHMENT_MAX_BYTES)} per file.
+          </p>
 
           <ul className="attachment-list card-attachments-minimal">
             {card.card_attachments.length === 0 && (
@@ -408,7 +471,7 @@ export function CardModal({
                     {formatBytes(Number(attachment.size_bytes))}
                   </span>
                 </button>
-                {(attachment.uploaded_by === myUserId || canManage) && (
+                {canEdit && (
                   <button
                     type="button"
                     className="icon-btn attachment-remove"
@@ -434,6 +497,7 @@ export function CardModal({
               placeholder="Add description, notes, or details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              disabled={!canEdit}
             />
           </div>
 
@@ -443,12 +507,20 @@ export function CardModal({
               {card.created_at ? ` · ${displayDate(card.created_at)}` : ""}
             </span>
             <div className="card-detail-actions">
-              <button type="button" className="btn btn-ghost btn-small" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary btn-small" disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </button>
+              {canEdit ? (
+                <>
+                  <button type="button" className="btn btn-ghost btn-small" onClick={onClose}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-small" disabled={saving}>
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn btn-ghost btn-small" onClick={onClose}>
+                  Close
+                </button>
+              )}
             </div>
           </div>
         </form>
