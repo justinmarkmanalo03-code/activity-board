@@ -12,6 +12,7 @@ import { ShareModal } from "@/components/board/ShareModal";
 import { ConfirmModal, PromptModal, Toast, useToast } from "@/components/Modals";
 import { usePresenceHeartbeat, useSession } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
+import { offlineDelete, offlineInsert, offlineRpc, offlineUpdate } from "@/lib/supabase-offline";
 import { randomHex, fileExtension } from "@/lib/format";
 import type { Attachment, Board, BoardList, BoardMember, BoardSummary, Card } from "@/lib/types";
 
@@ -241,15 +242,18 @@ export default function BoardPage() {
       onConfirm: async () => {
         setConfirmState(null);
         // Best-effort removal of attachment files from storage.
-        const { data: folder } = await supabase.storage.from("attachments").list(board.id);
-        if (folder && folder.length > 0) {
-          await supabase.storage
-            .from("attachments")
-            .remove(folder.map((object) => `${board.id}/${object.name}`));
+        try {
+          const { data: folder } = await supabase.storage.from("attachments").list(board.id);
+          if (folder && folder.length > 0) {
+            await supabase.storage
+              .from("attachments")
+              .remove(folder.map((object) => `${board.id}/${object.name}`));
+          }
+        } catch (_err) {
+          // Storage may fail offline; proceed with board deletion.
         }
-        const { error } = await supabase.from("boards").delete().eq("id", board.id);
-        if (error) showToast("Could not delete the board.");
-        else router.push("/dashboard");
+        await offlineDelete("boards", { id: board.id });
+        router.push("/dashboard");
       },
     });
   }
@@ -279,24 +283,14 @@ export default function BoardPage() {
   }
 
   async function unshare(userId: string) {
-    const { error } = await supabase
-      .from("board_members")
-      .delete()
-      .eq("board_id", boardId)
-      .eq("user_id", userId);
-    if (error) showToast("Could not remove the member.");
-    else showToast("Member removed.");
+    await offlineDelete("board_members", { board_id: boardId, user_id: userId });
+    showToast("Member removed.");
     loadBoard();
   }
 
   async function toggleRole(userId: string, role: "manager" | "member") {
-    const { error } = await supabase
-      .from("board_members")
-      .update({ role })
-      .eq("board_id", boardId)
-      .eq("user_id", userId);
-    if (error) showToast("Only the owner can change roles.");
-    else showToast(role === "manager" ? "Manager power granted." : "Manager power revoked.");
+    await offlineUpdate("board_members", { role }, { board_id: boardId, user_id: userId });
+    showToast(role === "manager" ? "Manager power granted." : "Manager power revoked.");
     loadBoard();
   }
 
@@ -304,10 +298,8 @@ export default function BoardPage() {
 
   async function addList(title: string) {
     const position = lists.length > 0 ? Math.max(...lists.map((l) => l.position)) + 1 : 1;
-    const { error } = await supabase
-      .from("lists")
-      .insert({ board_id: boardId, title, position });
-    if (error) showToast("Could not create the list.");
+    await offlineInsert("lists", { board_id: boardId, title, position });
+    showToast("List created.");
     loadBoard();
   }
 
@@ -320,11 +312,8 @@ export default function BoardPage() {
       maxLength: 100,
       onOk: async (value, color) => {
         setPromptState(null);
-        const { error } = await supabase
-          .from("lists")
-          .update({ title: value, color })
-          .eq("id", list.id);
-        if (error) showToast("Could not rename the list.");
+        await offlineUpdate("lists", { title: value, color }, { id: list.id });
+        showToast("List renamed.");
         loadBoard();
       },
     });
@@ -335,9 +324,8 @@ export default function BoardPage() {
       message: `Delete the list "${list.title}"? Lists can only be deleted while empty.`,
       onConfirm: async () => {
         setConfirmState(null);
-        const { error } = await supabase.from("lists").delete().eq("id", list.id);
-        if (error) showToast("Could not delete the list. It may still contain cards.");
-        else showToast("List deleted.");
+        await offlineDelete("lists", { id: list.id });
+        showToast("List deleted.");
         loadBoard();
       },
     });
@@ -348,10 +336,8 @@ export default function BoardPage() {
   async function addCard(listId: string, title: string) {
     const existing = cardsByList[listId] ?? [];
     const position = existing.length > 0 ? Math.max(...existing.map((c) => c.position)) + 1 : 1;
-    const { error } = await supabase
-      .from("cards")
-      .insert({ list_id: listId, title, created_by: myUserId, position });
-    if (error) showToast("Could not create the card.");
+    await offlineInsert("cards", { list_id: listId, title, created_by: myUserId, position });
+    showToast("Card created.");
     loadBoard();
   }
 
@@ -363,31 +349,28 @@ export default function BoardPage() {
     }
     const cardId = openCard.id;
 
-    const { error } = await supabase
-      .from("cards")
-      .update({
-        title: fields.title,
-        description: fields.description,
-        link_url: fields.linkUrl,
-        due_date: fields.dueDate,
-        due_time: fields.dueTime,
-        priority: fields.priority,
-      })
-      .eq("id", cardId);
-    if (error) {
-      showToast("Could not save the card.");
-      return;
-    }
+    await offlineUpdate("cards", {
+      title: fields.title,
+      description: fields.description,
+      link_url: fields.linkUrl,
+      due_date: fields.dueDate,
+      due_time: fields.dueTime,
+      priority: fields.priority,
+    }, { id: cardId });
 
     const currentIds = openCard.card_assignees.map((a) => a.user_id);
     const removed = currentIds.filter((id) => !fields.assigneeIds.includes(id));
     const added = fields.assigneeIds.filter((id) => !currentIds.includes(id));
 
     if (removed.length > 0) {
-      await supabase.from("card_assignees").delete().eq("card_id", cardId).in("user_id", removed);
+      for (const userId of removed) {
+        await offlineDelete("card_assignees", { card_id: cardId, user_id: userId });
+      }
     }
     if (added.length > 0) {
-      await supabase.from("card_assignees").insert(added.map((user_id) => ({ card_id: cardId, user_id })));
+      for (const userId of added) {
+        await offlineInsert("card_assignees", { card_id: cardId, user_id: userId });
+      }
     }
 
     setOpenCardId(null);
@@ -401,9 +384,8 @@ export default function BoardPage() {
       onConfirm: async () => {
         setConfirmState(null);
         setOpenCardId(null);
-        const { error } = await supabase.from("cards").delete().eq("id", cardId);
-        if (error) showToast("You can only delete cards you created.");
-        else showToast("Card deleted.");
+        await offlineDelete("cards", { id: cardId });
+        showToast("Card deleted.");
         loadBoard();
       },
     });
@@ -453,24 +435,19 @@ export default function BoardPage() {
     const index = beforeCardId ? targetCards.findIndex((c) => c.id === beforeCardId) : targetCards.length;
     targetCards.splice(index === -1 ? targetCards.length : index, 0, source!);
 
-    const ops: Promise<unknown>[] = targetCards.map((card, i) =>
-      Promise.resolve(
-        supabase.from("cards").update({ list_id: toListId, position: i + 1 }).eq("id", card.id)
-      )
-    );
+    for (let i = 0; i < targetCards.length; i++) {
+      await offlineUpdate("cards", { list_id: toListId, position: i + 1 }, { id: targetCards[i].id });
+    }
 
     if (sourceListId !== toListId) {
       const sourceCards = cards
         .filter((c) => c.list_id === sourceListId && c.id !== cardId)
         .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id));
-      sourceCards.forEach((card, i) => {
-        ops.push(
-          Promise.resolve(supabase.from("cards").update({ position: i + 1 }).eq("id", card.id))
-        );
-      });
+      for (let i = 0; i < sourceCards.length; i++) {
+        await offlineUpdate("cards", { position: i + 1 }, { id: sourceCards[i].id });
+      }
     }
 
-    await Promise.all(ops);
     draggingRef.current = false;
     loadBoard();
   }
