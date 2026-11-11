@@ -14,11 +14,17 @@ export function useSession() {
   useEffect(() => {
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSession(null);
+        setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -39,12 +45,16 @@ export function useSession() {
         setProfile(null);
         return;
       }
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-      if (!cancelled) setProfile((data as Profile) ?? null);
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        if (!cancelled) setProfile((data as Profile) ?? null);
+      } catch {
+        if (!cancelled) setProfile(null);
+      }
     }
 
     loadProfile();
@@ -74,7 +84,11 @@ export function usePresenceHeartbeat(enabled: boolean) {
 
     async function ping() {
       if (stopped || document.hidden) return;
-      await supabase.rpc("touch_last_seen");
+      try {
+        await supabase.rpc("touch_last_seen");
+      } catch {
+        // Offline — heartbeat will retry on next interval.
+      }
     }
 
     ping();

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Activity Board</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1e1b4b;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      backdrop-filter: blur(12px);
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; color: #fff; }
+    p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 24px; line-height: 1.5; }
+    .dot {
+      width: 10px; height: 10px; background: #ef4444;
+      border-radius: 50%; display: inline-block; margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+    .status { display: inline-flex; align-items: center; color: #f87171; font-weight: 600; font-size: 0.9rem; margin-bottom: 20px; }
+    .retry {
+      background: #2563eb; color: #fff; border: none; padding: 10px 20px;
+      border-radius: 8px; font-weight: 600; cursor: pointer;
+    }
+    .retry:hover { background: #1d4ed8; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="status"><span class="dot"></span> You're offline</div>
+    <h1>Activity Board</h1>
+    <p>You don't have an internet connection right now. Any changes you make will be saved locally and synced when you're back online.</p>
+    <button class="retry" onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>

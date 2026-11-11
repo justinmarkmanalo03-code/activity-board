@@ -76,70 +76,78 @@ export default function BoardPage() {
   const loadBoard = useCallback(async () => {
     if (!session?.user || !boardId) return;
 
-    const [{ data: boardData }, { data: listsData }, { data: cardsData }, { data: membersData }] =
-      await Promise.all([
-        supabase.from("boards").select("id, title, owner_id, created_at").eq("id", boardId).maybeSingle(),
-        supabase
-          .from("lists")
-          .select("id, board_id, title, color, position")
-          .eq("board_id", boardId)
-          .order("position")
-          .order("id", { ascending: true }),
-        supabase
-          .from("cards")
-          .select(`
-            id, list_id, title, description, link_url, created_by, due_date, due_time, priority, position, created_at,
-            card_assignees ( user_id, profiles ( id, username, avatar_url, last_seen ) ),
-            card_attachments ( id, card_id, uploaded_by, storage_path, original_name, mime_type, size_bytes, created_at )
-          `)
-          .order("position")
-          .order("id", { ascending: true }),
-        supabase
-          .from("board_members")
-          .select("user_id, role, profiles ( id, username, avatar_url, last_seen, is_admin )")
-          .eq("board_id", boardId),
-      ]);
+    try {
+      const [{ data: boardData }, { data: listsData }, { data: cardsData }, { data: membersData }] =
+        await Promise.all([
+          supabase.from("boards").select("id, title, owner_id, created_at").eq("id", boardId).maybeSingle(),
+          supabase
+            .from("lists")
+            .select("id, board_id, title, color, position")
+            .eq("board_id", boardId)
+            .order("position")
+            .order("id", { ascending: true }),
+          supabase
+            .from("cards")
+            .select(`
+              id, list_id, title, description, link_url, created_by, due_date, due_time, priority, position, created_at,
+              card_assignees ( user_id, profiles ( id, username, avatar_url, last_seen ) ),
+              card_attachments ( id, card_id, uploaded_by, storage_path, original_name, mime_type, size_bytes, created_at )
+            `)
+            .order("position")
+            .order("id", { ascending: true }),
+          supabase
+            .from("board_members")
+            .select("user_id, role, profiles ( id, username, avatar_url, last_seen, is_admin )")
+            .eq("board_id", boardId),
+        ]);
 
-    if (!boardData) {
-      setNotFound(true);
-      return;
+      if (!boardData) {
+        setNotFound(true);
+        return;
+      }
+
+      const listIds = new Set((listsData ?? []).map((l) => l.id));
+      const boardCards = ((cardsData ?? []) as unknown as Card[]).filter((card) => listIds.has(card.list_id));
+
+      const sortedMembers = ((membersData ?? []) as unknown as BoardMember[]).sort((a, b) =>
+        a.role === "owner" ? -1 : b.role === "owner" ? 1 : a.profiles.username.localeCompare(b.profiles.username)
+      );
+
+      setBoard(boardData as Board);
+      setLists((listsData ?? []) as BoardList[]);
+      setCards(boardCards);
+      setMembers(sortedMembers);
+    } catch {
+      // Offline — keep whatever data we already have in state.
     }
-
-    const listIds = new Set((listsData ?? []).map((l) => l.id));
-    const boardCards = ((cardsData ?? []) as unknown as Card[]).filter((card) => listIds.has(card.list_id));
-
-    const sortedMembers = ((membersData ?? []) as unknown as BoardMember[]).sort((a, b) =>
-      a.role === "owner" ? -1 : b.role === "owner" ? 1 : a.profiles.username.localeCompare(b.profiles.username)
-    );
-
-    setBoard(boardData as Board);
-    setLists((listsData ?? []) as BoardList[]);
-    setCards(boardCards);
-    setMembers(sortedMembers);
   }, [session, boardId]);
 
   const loadNavBoards = useCallback(async () => {
     if (!session?.user) return;
     const uid = session.user.id;
-    const { data } = await supabase
-      .from("boards")
-      .select("id, title, created_at, owner_id, board_members ( user_id, role )");
-    const summaries: BoardSummary[] = ((data as BoardRow[]) ?? [])
-      .map((row) => {
-        const mine = row.board_members.find((m) => m.user_id === uid);
-        if (!mine) return null;
-        return {
-          id: row.id,
-          title: row.title,
-          created_at: row.created_at,
-          owner_id: row.owner_id,
-          role: mine.role,
-          member_count: row.board_members.length,
-        } satisfies BoardSummary;
-      })
-      .filter((x): x is BoardSummary => x !== null)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
-    setNavBoards(summaries);
+    try {
+      const { data } = await supabase
+        .from("boards")
+        .select("id, title, created_at, owner_id, board_members ( user_id, role )");
+      const summaries: BoardSummary[] = ((data as BoardRow[]) ?? [])
+        .map((row) => {
+          const mine = row.board_members.find((m) => m.user_id === uid);
+          if (!mine) return null;
+          return {
+            id: row.id,
+            title: row.title,
+            created_at: row.created_at,
+            owner_id: row.owner_id,
+            role: mine.role,
+            member_count: row.board_members.length,
+          } satisfies BoardSummary;
+        })
+        .filter((x): x is BoardSummary => x !== null)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+      setNavBoards(summaries);
+    } catch {
+      // Offline — keep existing nav boards in state.
+    }
   }, [session]);
 
   useEffect(() => {
@@ -259,27 +267,31 @@ export default function BoardPage() {
   }
 
   async function share(username: string) {
-    const { data: target, error: lookupError } = await supabase
-      .from("profiles")
-      .select("id, username")
-      .eq("username", username)
-      .maybeSingle();
+    try {
+      const { data: target, error: lookupError } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .eq("username", username)
+        .maybeSingle();
 
-    if (lookupError || !target) {
-      showToast("No user with that username was found.");
-      return;
+      if (lookupError || !target) {
+        showToast("No user with that username was found.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("board_members")
+        .insert({ board_id: boardId, user_id: target.id, role: "member" });
+
+      if (error) {
+        showToast(error.code === "23505" ? "That user is already a member." : "Could not add the member.");
+        return;
+      }
+      showToast(`@${target.username} was added to the board.`);
+      loadBoard();
+    } catch {
+      showToast("You're offline. Share will sync when you reconnect.");
     }
-
-    const { error } = await supabase
-      .from("board_members")
-      .insert({ board_id: boardId, user_id: target.id, role: "member" });
-
-    if (error) {
-      showToast(error.code === "23505" ? "That user is already a member." : "Could not add the member.");
-      return;
-    }
-    showToast(`@${target.username} was added to the board.`);
-    loadBoard();
   }
 
   async function unshare(userId: string) {
@@ -458,39 +470,47 @@ export default function BoardPage() {
     if (!openCard) return;
     const cardId = openCard.id;
 
-    for (const file of files) {
-      const ext = fileExtension(file.name) || "bin";
-      const path = `${boardId}/${cardId}/${randomHex(16)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("attachments")
-        .upload(path, file, { contentType: file.type || undefined });
-      if (uploadError) {
-        showToast(`Could not upload ${file.name}.`);
-        continue;
+    try {
+      for (const file of files) {
+        const ext = fileExtension(file.name) || "bin";
+        const path = `${boardId}/${cardId}/${randomHex(16)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("attachments")
+          .upload(path, file, { contentType: file.type || undefined });
+        if (uploadError) {
+          showToast(`Could not upload ${file.name}.`);
+          continue;
+        }
+        const { error: insertError } = await supabase.from("card_attachments").insert({
+          card_id: cardId,
+          uploaded_by: myUserId,
+          storage_path: path,
+          original_name: file.name.slice(0, 180),
+          mime_type: file.type || null,
+          size_bytes: file.size,
+        });
+        if (insertError) {
+          await supabase.storage.from("attachments").remove([path]);
+          showToast(`Could not attach ${file.name}.`);
+        }
       }
-      const { error: insertError } = await supabase.from("card_attachments").insert({
-        card_id: cardId,
-        uploaded_by: myUserId,
-        storage_path: path,
-        original_name: file.name.slice(0, 180),
-        mime_type: file.type || null,
-        size_bytes: file.size,
-      });
-      if (insertError) {
-        await supabase.storage.from("attachments").remove([path]);
-        showToast(`Could not attach ${file.name}.`);
-      }
+      showToast("Files attached.");
+      loadBoard();
+    } catch {
+      showToast("You're offline. File uploads will sync when you reconnect.");
     }
-    showToast("Files attached.");
-    loadBoard();
   }
 
   async function deleteAttachment(attachment: Attachment) {
-    await supabase.storage.from("attachments").remove([attachment.storage_path]);
-    const { error } = await supabase.from("card_attachments").delete().eq("id", attachment.id);
-    if (error) showToast("Could not delete the attachment.");
-    else showToast("Attachment deleted.");
-    loadBoard();
+    try {
+      await supabase.storage.from("attachments").remove([attachment.storage_path]);
+      const { error } = await supabase.from("card_attachments").delete().eq("id", attachment.id);
+      if (error) showToast("Could not delete the attachment.");
+      else showToast("Attachment deleted.");
+      loadBoard();
+    } catch {
+      showToast("You're offline. Attachment deletion will sync when you reconnect.");
+    }
   }
 
   // ---------- Render ----------
