@@ -86,7 +86,7 @@ export default function BoardPage() {
         supabase
           .from("cards")
           .select(`
-            id, list_id, title, description, created_by, due_date, due_time, priority, position, created_at,
+            id, list_id, title, description, link_url, created_by, due_date, due_time, priority, position, created_at,
             card_assignees ( user_id, profiles ( id, username, avatar_url, last_seen ) ),
             card_attachments ( id, card_id, uploaded_by, storage_path, original_name, mime_type, size_bytes, created_at )
           `)
@@ -367,6 +367,7 @@ export default function BoardPage() {
       .update({
         title: fields.title,
         description: fields.description,
+        link_url: fields.linkUrl,
         due_date: fields.dueDate,
         due_time: fields.dueTime,
         priority: fields.priority,
