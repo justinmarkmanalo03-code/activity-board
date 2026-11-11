@@ -79,14 +79,14 @@ export default function BoardPage() {
         supabase.from("boards").select("id, title, owner_id, created_at").eq("id", boardId).maybeSingle(),
         supabase
           .from("lists")
-          .select("id, board_id, title, color, position, created_by")
+          .select("id, board_id, title, color, position")
           .eq("board_id", boardId)
           .order("position")
           .order("id", { ascending: true }),
         supabase
           .from("cards")
           .select(`
-            id, list_id, title, description, link_url, created_by, due_date, due_time, priority, position, created_at,
+            id, list_id, title, description, created_by, due_date, due_time, priority, position, created_at,
             card_assignees ( user_id, profiles ( id, username, avatar_url, last_seen ) ),
             card_attachments ( id, card_id, uploaded_by, storage_path, original_name, mime_type, size_bytes, created_at )
           `)
@@ -305,7 +305,7 @@ export default function BoardPage() {
     const position = lists.length > 0 ? Math.max(...lists.map((l) => l.position)) + 1 : 1;
     const { error } = await supabase
       .from("lists")
-      .insert({ board_id: boardId, title, position, created_by: myUserId });
+      .insert({ board_id: boardId, title, position });
     if (error) showToast("Could not create the list.");
     loadBoard();
   }
@@ -367,7 +367,6 @@ export default function BoardPage() {
       .update({
         title: fields.title,
         description: fields.description,
-        link_url: fields.linkUrl,
         due_date: fields.dueDate,
         due_time: fields.dueTime,
         priority: fields.priority,
