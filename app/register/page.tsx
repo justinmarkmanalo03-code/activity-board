@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityBackdrop } from "@/components/ActivityBackdrop";
+import { Mascot } from "@/components/Mascot";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -92,6 +93,7 @@ export default function RegisterPage() {
     <>
       <ActivityBackdrop />
       <main className="auth-card">
+        <Mascot />
         <div className="brand">Activity Board</div>
         <h1>Create your account</h1>
         <p className="lead">Free boards, lists, and cards. No email needed.</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityBackdrop } from "@/components/ActivityBackdrop";
+import { Mascot } from "@/components/Mascot";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -43,6 +44,7 @@ export default function LoginPage() {
     <>
       <ActivityBackdrop />
       <main className="auth-card">
+        <Mascot />
         <div className="brand">Activity Board</div>
         <h1>Welcome back</h1>
         <p className="lead">Sign in to open your boards.</p>

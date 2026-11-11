@@ -80,6 +80,9 @@ export function BoardView({
                 >
                   <header className="list-head">
                     <h2 className="list-title">{list.title}</h2>
+                    <span className="list-count" title={`${listCards.length} card${listCards.length === 1 ? "" : "s"}`}>
+                      {listCards.length}
+                    </span>
                     {canEditList(list) && (
                       <div className="list-tools">
                         <button

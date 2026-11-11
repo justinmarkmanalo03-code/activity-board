@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityBackdrop } from "@/components/ActivityBackdrop";
+import { Mascot } from "@/components/Mascot";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -13,6 +14,7 @@ export default function ForgotPasswordPage() {
     <>
       <ActivityBackdrop />
       <main className="auth-card">
+        <Mascot />
         <div className="brand">Activity Board</div>
         <h1>Forgot your password?</h1>
         <p className="lead">
