@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityBackdrop } from "@/components/ActivityBackdrop";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
@@ -551,11 +552,7 @@ export default function BoardPage() {
 
   return (
     <>
-      <div className="bg-decor" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <ActivityBackdrop intensity="calm" />
 
       <Sidebar active="board" user={profile} boards={navBoards} lists={lists} showLists boardId={boardId}>
         <header className="board-topbar">

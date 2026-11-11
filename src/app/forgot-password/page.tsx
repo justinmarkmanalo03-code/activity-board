@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityBackdrop } from "@/components/ActivityBackdrop";
 import { useEffect } from "react";
 import Link from "next/link";
 
@@ -10,11 +11,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <div className="bg-decor" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <ActivityBackdrop />
       <main className="auth-card">
         <div className="brand">Activity Board</div>
         <h1>Forgot your password?</h1>

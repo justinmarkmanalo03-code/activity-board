@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityBackdrop } from "@/components/ActivityBackdrop";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -89,11 +90,7 @@ export default function RegisterPage() {
 
   return (
     <>
-      <div className="bg-decor" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <ActivityBackdrop />
       <main className="auth-card">
         <div className="brand">Activity Board</div>
         <h1>Create your account</h1>

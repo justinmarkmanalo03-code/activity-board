@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityBackdrop } from "@/components/ActivityBackdrop";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
@@ -401,11 +402,7 @@ export default function AdminPage() {
 
   return (
     <>
-      <div className="bg-decor" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <ActivityBackdrop intensity="calm" />
       <Sidebar active="admin" user={profile} boards={boards}>
         <AdminContent
           stats={stats}

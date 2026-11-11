@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityBackdrop } from "@/components/ActivityBackdrop";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar, SidebarToggleButton } from "@/components/Sidebar";
@@ -421,11 +422,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="bg-decor" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      <ActivityBackdrop intensity="calm" />
       <Sidebar active="profile" user={profile} boards={boards}>
         <ProfileContent profile={profile} boards={boards} assignedCount={assignedCount} onAvatarSaved={refreshProfile} />
       </Sidebar>
