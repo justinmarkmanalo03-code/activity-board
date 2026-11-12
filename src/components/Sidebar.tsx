@@ -160,7 +160,9 @@ export function Sidebar({
       <div className={shellClass} id="appShell">
         <aside className="app-sidebar" id="appSidebar" aria-label="Workspace navigation">
           <div className="sidebar-head">
-            <span className="workspace-badge">AB</span>
+            <span className="workspace-badge">
+              <img src="/designer.png" alt="Activity Board logo" />
+            </span>
             <div className="workspace-meta">
               <strong>Activity Board</strong>
               <span>Workspace</span>
