@@ -4470,3 +4470,15 @@ body:has(.offline-banner) {
     padding-top: 40px;
 }
 
+/* Keep the mobile sidebar fully visible above the browser bars */
+@media (max-width: 900px) {
+    .app-sidebar {
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        overscroll-behavior: contain;
+    }
+}
+
