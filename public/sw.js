@@ -106,3 +106,28 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// ---- Deadline notifications ----
+// Focus an open tab (or open a new one) when a reminder is tapped.
+self.addEventListener("notificationclick", (event) => {
+  const data = event.notification.data || {};
+  const target = typeof data.url === "string" ? data.url : "/dashboard";
+  event.notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (new URL(client.url).origin === self.location.origin) {
+          if ("navigate" in client) {
+            client.navigate(target).catch(() => {});
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(target);
+      }
+      return undefined;
+    })
+  );
+});
